@@ -4,7 +4,7 @@ import pickle
 # step1 : タイトル長を計算する
 # 結果: 100字ぐらいからでいいと思う
 def step1():
-  for name in glob.glob("../output/*/*"):
+  for name in glob.glob("output/*/*"):
     title = name.split('/').pop()
     print( len(title) )
 
@@ -12,7 +12,7 @@ def step1():
 def step2():
   DIM = 1024*3
   c_f = {}
-  for name in glob.glob("../output/*/*"):
+  for name in glob.glob("output/*/*"):
     title = name.split('/').pop()
     #print( title )
     for c in list( title ):
@@ -31,14 +31,14 @@ def step2():
 def step3():
   WINDOW = 25
   title_dataset = {}
-  for e, name in enumerate( glob.glob("../output/*/*") ):
+  for e, name in enumerate( glob.glob("output/*/*") ):
     title = name.split('/').pop()
     print( e, title )
-    if e > 100000:
+    if e > 10000:
       break
     with open(name) as f:
       """" head, tail padding """
-      chars = list("H" * WINDOW + f.read() + "❄️" )
+      chars = list("H" * WINDOW + f.read() + "E" )
       for i in range( len(chars) - WINDOW ):
         #print( title, chars[i:i+WINDOW], chars[i+WINDOW] )
         if title_dataset.get( title ) is None:

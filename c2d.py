@@ -67,7 +67,7 @@ def train():
       
       ys[c_i[ans]] = 1.
 
-      xss1.append( xs1 )
+      xss1.append( list(reversed(xs1)) )
       xss2.append( xs2 )
       yss.append( ys ) 
   Xs1  = np.array( xss1 )
