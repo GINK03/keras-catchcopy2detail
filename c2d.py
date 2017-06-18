@@ -5,7 +5,7 @@ from keras.callbacks       import LambdaCallback
 from keras.optimizers      import SGD, RMSprop, Adam
 from keras.layers.wrappers import Bidirectional as Bi
 from keras.layers.wrappers import TimeDistributed as TD
-from keras.layers          import merge, multiply
+from keras.layers          import merge, multiply, concatenate, add
 from keras.regularizers    import l2
 from keras.layers.core     import Reshape
 from keras.layers.normalization import BatchNormalization as BN
@@ -20,103 +20,128 @@ import os
 import re
 
 
-timesteps   = 50
-inputs      = Input(shape=(timesteps, 128))
-encoded     = LSTM(512)(inputs)
-inputs_a    = inputs
-inputs_a    = Dense(2048)(inputs_a)
-inputs_a    = BN()(inputs_a)
-a_vector    = Dense(512, activation='softmax')(Flatten()(inputs_a))
-mul         = multiply([encoded, a_vector]) 
-encoder     = Model(inputs, mul)
+timesteps   = 100
+inputs_1    = Input( shape=(timesteps, 1024*3)) 
+encoded     = LSTM(512)(inputs_1)
+encoder     = Model(inputs_1, encoded)
 
-x           = RepeatVector(timesteps)(mul)
-x           = Bi(LSTM(512, return_sequences=True))(x)
-decoded     = TD(Dense(128, activation='softmax'))(x)
+x           = RepeatVector(25)(encoded)
+inputs_2    = Input( shape=(25, 1024*3) )
+conc        = concatenate( [x, inputs_2] )
+x           = Bi(LSTM(512, return_sequences=False))( conc )
+single      = Dense(1024*3, activation='softmax')(x)
 
-autoencoder = Model(inputs, decoded)
-autoencoder.compile(optimizer=Adam(), loss='categorical_crossentropy')
+c2d         = Model([inputs_1, inputs_2], single)
+c2d.compile(optimizer=Adam(), loss='categorical_crossentropy')
 
 buff = None
 def callbacks(epoch, logs):
   global buff
   buff = copy.copy(logs)
-  print("epoch" ,epoch)
-  print("logs", logs)
 
 def train():
-  c_i = pickle.loads( open("dataset/c_i.pkl", "rb").read() )
-  xss = []
-  yss = []
-  with open("dataset/corpus.distinct.txt", "r") as f:
-    lines = [line for line in f]
-    print( len(lines) )
-    random.shuffle( lines )
-    for fi, line in enumerate(lines):
-      print("now iter ", fi)
-      if fi >= 150000: 
-        break
-      line = line.strip()
-      head, tail = line.split("___SP___")
+  c_i           = pickle.loads( open("dataset/c_i.pkl", "rb").read() )
+  title_dataset = pickle.loads( open("dataset/title_dataset.pkl", "rb").read() )
+  xss1 = []
+  xss2 = []
+  yss  = []
 
-      xs = [ [0.]*128 for _ in range(50) ]
-      for i, c in enumerate(head): 
-        xs[i][c_i[c]] = 1.
-      xss.append( np.array( list(reversed(xs)) ) )
+  for e, (title, dataset) in enumerate(title_dataset.items()):
+    print( e, title )
+    if e > 5 :
+      break
+    for di, (context, ans) in enumerate(dataset):
+      if di > 220:
+        break
+      xs1 = [ [0.]*(1024*3) for _ in range(100) ] 
+      xs2 = [ [0.]*(1024*3) for _ in range(25) ] 
+      ys  =   [0.]*(1024*3)
+      for e,c in enumerate(list(title)):
+        if c_i.get(c) is not None:
+          xs1[e][c_i[c]] = 1.
+      for e,c in enumerate(context):
+        if c_i.get(c) is not None:
+          xs2[e][c_i[c]] = 1.
+      if c_i.get(ans) is None:
+        continue
       
-      ys = [ [0.]*128 for _ in range(50) ]
-      for i, c in enumerate(tail): 
-        ys[i][c_i[c]] = 1.
-      yss.append( np.array( ys ) )
-  Xs = np.array( xss )
-  Ys = np.array( yss )
-  print(Xs.shape)
+      ys[c_i[ans]] = 1.
+
+      xss1.append( xs1 )
+      xss2.append( xs2 )
+      yss.append( ys ) 
+  Xs1  = np.array( xss1 )
+  Xs2  = np.array( xss2 )
+  Ys   = np.array( yss )
   if '--resume' in sys.argv:
     model = sorted( glob.glob("models/*.h5") ).pop(0)
     print("loaded model is ", model)
-    autoencoder.load_weights(model)
+    c2d.load_weights(model)
 
   for i in range(2000):
     print_callback = LambdaCallback(on_epoch_end=callbacks)
     batch_size = random.randint( 32, 64 )
     random_optim = random.choice( [Adam(), SGD(), RMSprop()] )
     print( random_optim )
-    autoencoder.optimizer = random_optim
-    autoencoder.fit( Xs, Ys,  shuffle=True, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
-    autoencoder.save("models/%9f_%09d.h5"%(buff['loss'], i))
+    c2d.optimizer = random_optim
+    c2d.fit( [Xs1, Xs2], Ys,  shuffle=True, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
+    c2d.save("models/%9f_%09d.h5"%(buff['loss'], i))
     print("saved ..")
     print("logs...", buff )
 
 def predict():
-  c_i = pickle.loads( open("dataset/c_i.pkl", "rb").read() )
-  i_c = { i:c for c, i in c_i.items() }
-  xss = []
-  heads = []
-  with open("dataset/corpus.distinct.txt", "r") as f:
-    for fi, line in enumerate(f):
-      print("now iter ", fi)
-      line = line.strip()
-      head, tail = line.split("___SP___")
-      heads.append( head ) 
-      xs = [ [0.]*128 for _ in range(50) ]
-      for i, c in enumerate(head): 
-        xs[i][c_i[c]] = 1.
-      xss.append( np.array( list(reversed(xs)) ) )
-    
-  Xs = np.array( xss )
-  print( Xs)
+  c_i           = pickle.loads( open("dataset/c_i.pkl", "rb").read() )
+  i_c           = { i:c for c,i in c_i.items() }
+  title_dataset = pickle.loads( open("dataset/title_dataset.pkl", "rb").read() )
+  xss1  = []
+  xss2  = []
+  yss   = []
+  xssrs = []
+  for e, (title, dataset) in enumerate(title_dataset.items()):
+    print( e, title )
+    if e > 5 :
+      break
+    for di, (context, ans) in enumerate(dataset):
+      if di > 220:
+        break
+      xs1 = [ [0.]*(1024*3) for _ in range(100) ] 
+      xs2 = [ [0.]*(1024*3) for _ in range(25) ] 
+      ys  =   [0.]*(1024*3)
+      for e,c in enumerate(list(title)):
+        if c_i.get(c) is not None:
+          xs1[e][c_i[c]] = 1.
+      for e,c in enumerate(context):
+        if c_i.get(c) is not None:
+          xs2[e][c_i[c]] = 1.
+      if c_i.get(ans) is None:
+        continue
+      try:
+        ys[c_i[ans]] = 1.
+      except IndexError as e:
+        print(e)
+       
+      xssrs.append( (title, "".join(context), ans) )
+      xss1.append( xs1 )
+      xss2.append( xs2 )
+      yss.append( ys ) 
+  Xs1  = np.array( xss1 )
+  Xs2  = np.array( xss2 )
+  Ys   = np.array( yss )
+
   model = sorted( glob.glob("models/*.h5") ).pop(0)
   print("loaded model is ", model)
-  autoencoder.load_weights(model)
-
-  Ys = autoencoder.predict( Xs ).tolist()
-  for ez, (head, y) in enumerate(zip(heads, Ys)):
-    terms = []
-    for v in y:
-      term = max( [(s, i_c[i]) for i,s in enumerate(v)] , key=lambda x:x[0])[1]
-      terms.append( term )
-    tail = re.sub(r"」.*?$", "」", "".join( terms ) )
-    print(ez, head, "___SP___", tail )
+  c2d.load_weights(model)
+  for xrs, xs1, xs2 in zip(xssrs, Xs1, Xs2):
+    ps = c2d.predict( [ np.array([xs1]), np.array([xs2]) ] )
+    print( len(ps.tolist()) )
+    print( len(ps.tolist()[0]) )
+    ips = [(i,p) for i, p in enumerate(ps.tolist()[0])]
+    ip  = max(ips, key=lambda x:x[1])
+    i, p = ip
+    print( xrs )
+    print(ip, i_c[i])
+  print( Xs1.shape )
+  print( Xs2.shape )
 if __name__ == '__main__':
   if '--test' in sys.argv:
     test()
