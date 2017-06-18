@@ -85,7 +85,8 @@ def train():
   Ys   = np.array( yss )
   
   """ startインデックス """
-  I    = None
+  I      = 0
+  model  = "start point"
   if '--resume' in sys.argv:
     model = sorted( glob.glob("models/*.h5") ).pop()
     I = int( re.search( r"/(.*?)_", model).group(1) )
