@@ -28,7 +28,7 @@ encoder     = Model(inputs_1, encoded)
 x           = RepeatVector(25)(encoded)
 inputs_2    = Input( shape=(25, 1024*3) )
 conc        = concatenate( [x, inputs_2] )
-x           = Bi(LSTM(512, return_sequences=False))( conc )
+x           = LSTM(512, return_sequences=False)( conc )
 single      = Dense(1024*3, activation='softmax')(x)
 
 c2d         = Model([inputs_1, inputs_2], single)
