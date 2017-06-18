@@ -30,21 +30,23 @@ def step2():
 # step3 : データ・セット作成する
 def step3():
   WINDOW = 25
-  title_dataset = {}
   for e, name in enumerate( glob.glob("output/*/*") ):
     title = name.split('/').pop()
     print( e, title )
     if e > 10000:
       break
+    dataset = []
     with open(name) as f:
       """" head, tail padding """
       chars = list("H" * WINDOW + f.read() + "E" )
       for i in range( len(chars) - WINDOW ):
         #print( title, chars[i:i+WINDOW], chars[i+WINDOW] )
-        if title_dataset.get( title ) is None:
-          title_dataset[title] = []
-        title_dataset[title].append( (chars[i:i+WINDOW], chars[i+WINDOW]) )  
-  open("dataset/title_dataset.pkl", "wb").write( pickle.dumps( title_dataset ) )
+        dataset.append( (chars[i:i+WINDOW], chars[i+WINDOW]) )  
+    try:
+      open("dataset/{title}.pkl".format(title=title), "wb").write( pickle.dumps( dataset ) )
+    except OSError as e:
+      print( e )
+
 if __name__ == '__main__':
   if '--step1' in sys.argv:
     step1()
