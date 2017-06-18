@@ -33,8 +33,8 @@ def step3():
   for e, name in enumerate( glob.glob("output/*/*") ):
     title = name.split('/').pop()
     print( e, title )
-    if e > 100000:
-      break
+    #if e > 100000:
+    #  break
     dataset = []
     with open(name) as f:
       """" head, tail padding """
