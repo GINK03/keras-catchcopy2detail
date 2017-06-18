@@ -85,9 +85,10 @@ def train():
     print( random_optim )
     c2d.optimizer = random_optim
     c2d.fit( [Xs1, Xs2], Ys,  shuffle=True, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
-    c2d.save("models/%9f_%09d.h5"%(buff['loss'], i))
-    print("saved ..")
-    print("logs...", buff )
+    if i%5 == 0:
+      c2d.save("models/%9f_%09d.h5"%(buff['loss'], i))
+      print("saved ..")
+      print("logs...", buff )
 
 def predict():
   c_i           = pickle.loads( open("dataset/c_i.pkl", "rb").read() )

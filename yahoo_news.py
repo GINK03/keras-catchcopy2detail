@@ -34,7 +34,7 @@ def step3():
   for e, name in enumerate( glob.glob("../output/*/*") ):
     title = name.split('/').pop()
     print( e, title )
-    if e > 50000:
+    if e > 100000:
       break
     with open(name) as f:
       """" head, tail padding """
