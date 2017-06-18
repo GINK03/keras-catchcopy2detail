@@ -56,14 +56,14 @@ def train():
       xs1 = [ [0.]*(1024*3) for _ in range(100) ] 
       xs2 = [ [0.]*(1024*3) for _ in range(25) ] 
       ys  =   [0.]*(1024*3)
+      if c_i.get(ans) is None:
+        continue
       for e,c in enumerate(list(title)):
         if c_i.get(c) is not None:
           xs1[e][c_i[c]] = 1.
       for e,c in enumerate(context):
         if c_i.get(c) is not None:
           xs2[e][c_i[c]] = 1.
-      if c_i.get(ans) is None:
-        continue
       
       ys[c_i[ans]] = 1.
 
@@ -85,6 +85,7 @@ def train():
     print( random_optim )
     c2d.optimizer = random_optim
     c2d.fit( [Xs1, Xs2], Ys,  shuffle=True, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
+    #c2d.fit( Xs2, Ys,  shuffle=True, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
     if i%5 == 0:
       c2d.save("models/%9f_%09d.h5"%(buff['loss'], i))
       print("saved ..")
@@ -108,21 +109,19 @@ def predict():
       xs1 = [ [0.]*(1024*3) for _ in range(100) ] 
       xs2 = [ [0.]*(1024*3) for _ in range(25) ] 
       ys  =   [0.]*(1024*3)
+      if c_i.get(ans) is None:
+        continue
       for e,c in enumerate(list(title)):
         if c_i.get(c) is not None:
           xs1[e][c_i[c]] = 1.
       for e,c in enumerate(context):
         if c_i.get(c) is not None:
           xs2[e][c_i[c]] = 1.
-      if c_i.get(ans) is None:
-        continue
-      try:
-        ys[c_i[ans]] = 1.
-      except IndexError as e:
-        print(e)
+
+      ys[c_i[ans]] = 1.
        
       xssrs.append( (title, "".join(context), ans) )
-      xss1.append( xs1 )
+      xss1.append( list(reversed(xs1)) )
       xss2.append( xs2 )
       yss.append( ys ) 
   Xs1  = np.array( xss1 )
