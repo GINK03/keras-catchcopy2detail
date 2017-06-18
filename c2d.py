@@ -83,18 +83,24 @@ def train():
   Xs1  = np.array( xss1 )
   Xs2  = np.array( xss2 )
   Ys   = np.array( yss )
+  
+  """ startインデックス """
+  I    = None
   if '--resume' in sys.argv:
     model = sorted( glob.glob("models/*.h5") ).pop()
+    I = int( re.search( r"/(.*?)_", model).group(1) )
     print("loaded model is ", model)
     c2d.load_weights(model)
 
-  for i in range(10):
+  for i in range(I, I+10):
     print_callback = LambdaCallback(on_epoch_end=callbacks)
     batch_size = random.randint( 32, 64 )
     random_optim = random.choice( [Adam(), SGD(), RMSprop()] )
     print( random_optim )
+    print( "now dealing ", model )
     c2d.optimizer = random_optim
     c2d.fit( [Xs1, Xs2], Ys,  shuffle=True, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
+
     #c2d.fit( Xs2, Ys,  shuffle=False, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
     if i%5 == 0:
       c2d.save("models/%09d_%09f.h5"%(i, buff['loss']))
