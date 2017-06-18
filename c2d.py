@@ -55,7 +55,7 @@ def train():
     title   = re.search(r"/(.*?).pkl", filename).group(1)
     dataset = pickle.loads( open(filename, "rb").read() )
     print( e, title )
-    if e > 7 :
+    if e > 30 :
       break
     for di, (context, ans) in enumerate(dataset):
       if di > 220:
@@ -122,9 +122,13 @@ def predict():
   i_c           = { i:c for c,i in c_i.items() }
   title_dataset = pickle.loads( open("dataset/title_dataset.pkl", "rb").read() )
   pds = []
-  for e, (title, dataset) in enumerate(title_dataset.items()):
+  for e, filename in enumerate(glob.glob("dataset/*.pkl")):
+    if "c_i.pkl" in filename:
+      continue
+    title   = re.search(r"/(.*?).pkl", filename).group(1)
+    dataset = pickle.loads( open(filename, "rb").read() )
     print( e, title )
-    if e > 5 :
+    if e > 30 :
       break
     for di, (context, ans) in enumerate(dataset):
       if di > 220:

@@ -40,7 +40,8 @@ def step3():
       """" head, tail padding """
       chars = list("H" * WINDOW + f.read() + "E" )
       for i in range( len(chars) - WINDOW ):
-        #print( title, chars[i:i+WINDOW], chars[i+WINDOW] )
+        if i > 300: 
+          break
         dataset.append( (chars[i:i+WINDOW], chars[i+WINDOW]) )  
     try:
       open("dataset/{title}.pkl".format(title=title), "wb").write( pickle.dumps( dataset ) )
