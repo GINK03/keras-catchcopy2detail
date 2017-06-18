@@ -94,6 +94,7 @@ def train():
     c2d.load_weights(model)
 
   delta = random.randint(0,10)
+  ind   = 0
   for ind in range(I, I+delta):
     print_callback = LambdaCallback(on_epoch_end=callbacks)
     batch_size = random.randint( 32, 64 )
