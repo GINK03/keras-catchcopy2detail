@@ -93,7 +93,7 @@ def train():
     print("loaded model is ", model)
     c2d.load_weights(model)
 
-  for i in range(I, I+10):
+  for ind in range(I, I+15):
     print_callback = LambdaCallback(on_epoch_end=callbacks)
     batch_size = random.randint( 32, 64 )
     random_optim = random.choice( [Adam(), SGD(), RMSprop()] )
@@ -103,10 +103,6 @@ def train():
     c2d.fit( [Xs1, Xs2], Ys,  shuffle=True, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
 
     #c2d.fit( Xs2, Ys,  shuffle=False, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
-    if i%5 == 0:
-      c2d.save("models/%09d_%09f.h5"%(i, buff['loss']))
-      print("saved ..")
-      print("logs...", buff )
 
     """ サンプリング """
     ps = c2d.predict( [Xs1[:10], Xs2[:10]] ).tolist()
@@ -116,7 +112,9 @@ def train():
       i, p = ip
       print( cs )
       print(ip, i_c[i])
-  c2d.save("models/%09d_%09f.h5"%(i, buff['loss']))
+  c2d.save("models/%09d_%09f.h5"%(ind, buff['loss']))
+  print("saved ..")
+  print("logs...", buff )
 
 def predict():
   class PD:
