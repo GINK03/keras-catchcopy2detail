@@ -84,7 +84,7 @@ def train():
   Xs2  = np.array( xss2 )
   Ys   = np.array( yss )
   if '--resume' in sys.argv:
-    model = sorted( glob.glob("models/*.h5"), key=lambda x:x*-1 ).pop(0)
+    model = sorted( glob.glob("models/*.h5") ).pop()
     print("loaded model is ", model)
     c2d.load_weights(model)
 
