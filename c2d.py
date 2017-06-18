@@ -25,13 +25,13 @@ inputs_1    = Input( shape=(timesteps, 1024*3))
 encoded     = LSTM(512)(inputs_1)
 encoder     = Model(inputs_1, encoded)
 
-x           = RepeatVector(25)(encoded)
+att         = RepeatVector(25)(encoded)
 inputs_2    = Input( shape=(25, 1024*3) )
-conc        = concatenate( [x, inputs_2] )
-x           = LSTM(512, return_sequences=False)( conc )
-single      = Dense(1024*3, activation='softmax')(x)
+conc        = concatenate( [att, inputs_2] )
+conced      = LSTM(512, return_sequences=False)( conc )
+shot        = Dense(1024*3, activation='softmax')( conced )
 
-c2d         = Model([inputs_1, inputs_2], single)
+c2d         = Model([inputs_1, inputs_2], shot)
 c2d.compile(optimizer=Adam(), loss='categorical_crossentropy')
 
 buff = None
@@ -48,7 +48,7 @@ def train():
 
   for e, (title, dataset) in enumerate(title_dataset.items()):
     print( e, title )
-    if e > 5 :
+    if e > 7 :
       break
     for di, (context, ans) in enumerate(dataset):
       if di > 220:
