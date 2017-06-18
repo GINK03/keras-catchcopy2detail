@@ -14,6 +14,7 @@ import numpy as np
 import random
 import sys
 import pickle
+import json
 import glob
 import copy
 import os
@@ -85,21 +86,24 @@ def train():
   Ys   = np.array( yss )
   
   """ startインデックス """
-  I      = 0
-  model  = "start point"
+  I          = 0
+  model      = "start point"
+  epoch_rate = json.loads( open("epoch_rate.json").read() )
   if '--resume' in sys.argv:
     model = sorted( glob.glob("models/*.h5") ).pop()
     I = int( re.search( r"/(.*?)_", model).group(1) )
     print("loaded model is ", model)
     c2d.load_weights(model)
 
-  delta = random.randint(10,15)
+  delta = random.randint(15,20)
   ind   = 0
   for ind in range(I, I+delta):
     print_callback = LambdaCallback(on_epoch_end=callbacks)
     batch_size = random.randint( 32, 64 )
-    random_optim = random.choice( [Adam(), SGD(), RMSprop()] )
-    print( random_optim )
+    lr           = epoch_rate["%d"%ind]
+    random_optim = random.choice( [Adam(lr), SGD(lr*10.), RMSprop(lr)] )
+    print( "optimizer", random_optim )
+    print( "learning_rate base", lr )
     print( "now dealing ", model )
     c2d.optimizer = random_optim
     c2d.fit( [Xs1, Xs2], Ys,  shuffle=True, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
