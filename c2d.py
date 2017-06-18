@@ -93,7 +93,7 @@ def train():
     print("loaded model is ", model)
     c2d.load_weights(model)
 
-  delta = random.randint(0,10)
+  delta = random.randint(10,15)
   ind   = 0
   for ind in range(I, I+delta):
     print_callback = LambdaCallback(on_epoch_end=callbacks)
