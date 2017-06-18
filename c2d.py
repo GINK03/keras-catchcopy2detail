@@ -93,7 +93,8 @@ def train():
     print("loaded model is ", model)
     c2d.load_weights(model)
 
-  for ind in range(I, I+15):
+  delta = random.randint(0,10)
+  for ind in range(I, I+delta):
     print_callback = LambdaCallback(on_epoch_end=callbacks)
     batch_size = random.randint( 32, 64 )
     random_optim = random.choice( [Adam(), SGD(), RMSprop()] )
