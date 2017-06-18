@@ -22,18 +22,19 @@ import re
 
 timesteps   = 100
 inputs_1    = Input( shape=(timesteps, 1024*3)) 
-encoded     = LSTM(512)(inputs_1)
+encoded     = GRU(512)(inputs_1)
 encoder     = Model(inputs_1, encoded)
 
 att         = RepeatVector(25)(encoded)
 inputs_2    = Input( shape=(25, 1024*3) )
-#conc        = concatenate( [att, inputs_2] )
-conc        = inputs_2
-conced      = LSTM(512, return_sequences=False)( conc )
+fc          = Dense(1024*3, activation="tanh" )(inputs_2)
+conc        = concatenate( [att, fc] )
+#conc        = inputs_2
+conced      = GRU(512, return_sequences=False)( conc )
 shot        = Dense(1024*3, activation='softmax')( conced )
 
-#c2d         = Model([inputs_1, inputs_2], shot)
-c2d         = Model( inputs_2, shot)
+c2d         = Model([inputs_1, inputs_2], shot)
+#c2d         = Model( inputs_2, shot)
 c2d.compile(optimizer=Adam(), loss='categorical_crossentropy')
 
 buff = None
@@ -91,14 +92,16 @@ def train():
     random_optim = random.choice( [Adam(), SGD(), RMSprop()] )
     print( random_optim )
     c2d.optimizer = random_optim
-    #c2d.fit( [Xs1, Xs2], Ys,  shuffle=True, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
-    c2d.fit( Xs2, Ys,  shuffle=False, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
+    c2d.fit( [Xs1, Xs2], Ys,  shuffle=True, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
+    #c2d.fit( Xs2, Ys,  shuffle=False, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
     if i%5 == 0:
       c2d.save("models/%9f_%09d.h5"%(buff['loss'], i))
       print("saved ..")
       print("logs...", buff )
-    ps = c2d.predict( Xs2[:5] ).tolist()
-    for cs, p in zip(contexts[:5], ps):
+
+    """ サンプリング """
+    ps = c2d.predict( [Xs1[:10], Xs2[:10]] ).tolist()
+    for cs, p in zip(contexts[:10], ps):
       ips = [(i,_p) for i, _p in enumerate(p)]
       ip  = max(ips, key=lambda x:x[1])
       i, p = ip
