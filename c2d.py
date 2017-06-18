@@ -49,13 +49,15 @@ def train():
   xss2 = []
   yss  = []
   contexts = []
-  for e, filename in enumerate(glob.glob("dataset/*.pkl")):
+  files    = glob.glob("dataset/*.pkl")
+  random.shuffle( files ) 
+  for e, filename in enumerate(files):
     if "c_i.pkl" in filename:
       continue
     title   = re.search(r"/(.*?).pkl", filename).group(1)
     dataset = pickle.loads( open(filename, "rb").read() )
     print( e, title )
-    if e > 30 :
+    if e > 20 :
       break
     for di, (context, ans) in enumerate(dataset):
       if di > 220:
@@ -82,11 +84,11 @@ def train():
   Xs2  = np.array( xss2 )
   Ys   = np.array( yss )
   if '--resume' in sys.argv:
-    model = sorted( glob.glob("models/*.h5") ).pop(0)
+    model = sorted( glob.glob("models/*.h5"), key=lambda x:x*-1 ).pop(0)
     print("loaded model is ", model)
     c2d.load_weights(model)
 
-  for i in range(2000):
+  for i in range(10):
     print_callback = LambdaCallback(on_epoch_end=callbacks)
     batch_size = random.randint( 32, 64 )
     random_optim = random.choice( [Adam(), SGD(), RMSprop()] )
@@ -95,7 +97,7 @@ def train():
     c2d.fit( [Xs1, Xs2], Ys,  shuffle=True, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
     #c2d.fit( Xs2, Ys,  shuffle=False, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
     if i%5 == 0:
-      c2d.save("models/%9f_%09d.h5"%(buff['loss'], i))
+      c2d.save("models/%09d_%09f.h5"%(i, buff['loss']))
       print("saved ..")
       print("logs...", buff )
 
@@ -107,6 +109,7 @@ def train():
       i, p = ip
       print( cs )
       print(ip, i_c[i])
+  c2d.save("models/%09d_%09f.h5"%(i, buff['loss']))
 
 def predict():
   class PD:
@@ -128,7 +131,7 @@ def predict():
     title   = re.search(r"/(.*?).pkl", filename).group(1)
     dataset = pickle.loads( open(filename, "rb").read() )
     print( e, title )
-    if e > 30 :
+    if e > 300 :
       break
     for di, (context, ans) in enumerate(dataset):
       if di > 220:
