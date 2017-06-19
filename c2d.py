@@ -23,14 +23,17 @@ import re
 
 timesteps   = 100
 inputs_1    = Input( shape=(timesteps, 1024*3)) 
-encoded     = GRU(512)(inputs_1)
+encoded     = GRU(256)(inputs_1)
 encoder     = Model(inputs_1, encoded)
+att_1       = RepeatVector(25)(encoded)
 
-att         = RepeatVector(25)(encoded)
 inputs_2    = Input( shape=(25, 1024*3) )
-fc          = Dense(1024*3, activation="tanh" )(inputs_2)
-conc        = concatenate( [att, fc] )
-#conc        = inputs_2
+#fc          = Dense(1024*3, activation="tanh" )(inputs_2)
+encoded_2   = GRU(256)(inputs_2)
+att_2       = RepeatVector(25)(encoded_2)
+
+conc        = concatenate( [att_1, att_2] )
+
 conced      = GRU(512, return_sequences=False)( conc )
 shot        = Dense(1024*3, activation='softmax')( conced )
 
@@ -101,7 +104,8 @@ def train():
     print_callback = LambdaCallback(on_epoch_end=callbacks)
     batch_size = random.randint( 32, 64 )
     lr           = epoch_rate["%d"%ind]
-    random_optim = random.choice( [Adam(lr), SGD(lr*10.), RMSprop(lr)] )
+    #random_optim = random.choice( [Adam(lr), SGD(lr*10.), RMSprop(lr)] )
+    random_optim = random.choice( [Adam(), SGD(), RMSprop()] )
     print( "optimizer", random_optim )
     print( "learning_rate base", lr )
     print( "now dealing ", model )
