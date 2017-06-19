@@ -20,7 +20,6 @@ import copy
 import os
 import re
 
-
 inputs_1    = Input( shape=(100, 1024*3)) 
 encoded     = GRU(256)(inputs_1)
 encoder     = Model(inputs_1, encoded)
@@ -71,6 +70,9 @@ def make_dataset():
       if di > 350:
         break
       key       = "{title}_{num}".format(title=title, num=di)
+      if os.path.exists(key) :
+        print( "すでにシリアライズしたようです", key )
+        continue
       xs1 = [ [0.]*(1024*3) for _ in range(100) ] 
       xs2 = [ [0.]*(1024*3) for _ in range(25) ] 
       ys  =   [0.]*(1024*3)
@@ -102,78 +104,79 @@ def make_dataset():
       pd.title  = title
       pd.context= "".join(context)
       pd.ans    = ans
-      open("/mnt/sda/train_dataset/{}.pkl".format( key ), "wb").write( pickle.dumps(pd) )
+      open("train_dataset/{}.pkl".format( key ), "wb").write( pickle.dumps(pd) )
 
 def train():
   c_i           = pickle.loads( open("dataset/c_i.pkl", "rb").read() )
   i_c           = { i:c for c,i in c_i.items() }
   keys          = []
-  files         = glob.glob('/mnt/sda/train_dataset/*.pkl')
-  for ed, key in enumerate(files):
-    keys.append( key )
-  random.shuffle( keys ) 
-  xss1 = []
-  xss2 = []
-  yss  = []
-  contexts = []
+  files         = glob.glob('train_dataset/*.pkl')
+  for _ in range(10):
+    for ed, key in enumerate(files):
+      keys.append( key )
+    random.shuffle( keys ) 
+    xss1 = []
+    xss2 = []
+    yss  = []
+    contexts = []
 
-  for CROP in range(0, len(keys), 1024*5):
-    for ek, key in enumerate( keys[CROP:CROP+1024*5] ):
-      print( ek )
-      try:
-        pd = pickle.loads( open(key, "rb").read() )
-      except EOFError as e:
-        print( e )
-        continue
-      xss1.append( pd.xs1 )
-      xss2.append( pd.xs2 )
-      yss.append( pd.ys )
-      contexts.append( (pd.title, pd.context, pd.ans)  ) 
-    Xs1  = np.array( xss1 )
-    Xs2  = np.array( xss2 )
-    Ys   = np.array( yss )
-    
-    """ startインデックス """
-    I          = 0
-    model      = "start point"
-    epoch_rate = json.loads( open("epoch_rate.json").read() )
-    try:
-      #if '--resume' in sys.argv:
-      model = sorted( glob.glob("models/*.h5") ).pop()
-      I = int( re.search( r"/(.*?)_", model).group(1) )
-      print("loaded model is ", model)
-      c2d.load_weights(model)
-    except IndexError as e:
-      print( e )
+    for CROP in range(0, len(keys), 1024*5):
+      for ek, key in enumerate( keys[CROP:CROP+1024*5] ):
+        print( ek )
+        try:
+          pd = pickle.loads( open(key, "rb").read() )
+        except EOFError as e:
+          print( e )
+          continue
+        xss1.append( pd.xs1 )
+        xss2.append( pd.xs2 )
+        yss.append( pd.ys )
+        contexts.append( (pd.title, pd.context, pd.ans)  ) 
+      Xs1  = np.array( xss1 )
+      Xs2  = np.array( xss2 )
+      Ys   = np.array( yss )
       
+      """ startインデックス """
+      I          = 0
+      model      = "start point"
+      epoch_rate = json.loads( open("epoch_rate.json").read() )
+      try:
+        #if '--resume' in sys.argv:
+        model = sorted( glob.glob("models/*.h5") ).pop()
+        I = int( re.search( r"/(.*?)_", model).group(1) )
+        print("loaded model is ", model)
+        c2d.load_weights(model)
+      except IndexError as e:
+        print( e )
+        
 
-    delta = random.randint(15,20)
-    ind   = 0
-    for ind in range(I, I+delta):
-      print_callback = LambdaCallback(on_epoch_end=callbacks)
-      batch_size = random.randint( 32, 64 )
-      lr           = epoch_rate["%d"%ind]
-      #random_optim = random.choice( [Adam(lr), SGD(lr*10.), RMSprop(lr)] )
-      random_optim = random.choice( [Adam(), SGD(), RMSprop()] )
-      print( "optimizer", random_optim )
-      print( "learning_rate base", lr )
-      print( "now dealing ", model )
-      c2d.optimizer = random_optim
-      c2d.fit( [Xs1, Xs2], Ys,  shuffle=True, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
+      delta = random.randint(15,20)
+      ind   = 0
+      for ind in range(I, I+delta):
+        print_callback = LambdaCallback(on_epoch_end=callbacks)
+        batch_size = random.randint( 32, 64 )
+        lr           = epoch_rate["%d"%ind]
+        #random_optim = random.choice( [Adam(lr), SGD(lr*10.), RMSprop(lr)] )
+        random_optim = random.choice( [Adam(), SGD(), RMSprop()] )
+        print( "optimizer", random_optim )
+        print( "learning_rate base", lr )
+        print( "now dealing ", model )
+        c2d.optimizer = random_optim
+        c2d.fit( [Xs1, Xs2], Ys,  shuffle=True, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
 
-      #c2d.fit( Xs2, Ys,  shuffle=False, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
+        #c2d.fit( Xs2, Ys,  shuffle=False, batch_size=batch_size, epochs=1, callbacks=[print_callback] )
 
-      """ サンプリング """
-      ps = c2d.predict( [Xs1[:10], Xs2[:10]] ).tolist()
-      for cs, p in zip(contexts[:10], ps):
-        ips = [(i,_p) for i, _p in enumerate(p)]
-        ip  = max(ips, key=lambda x:x[1])
-        i, p = ip
-        print( cs )
-        print(ip, i_c[i])
-    c2d.save("models/%09d_%09f.h5"%(ind, buff['loss']))
-    print("saved ..")
-    print("logs...", buff )
+        """ サンプリング """
+        ps = c2d.predict( [Xs1[:10], Xs2[:10]] ).tolist()
+        for cs, p in zip(contexts[:10], ps):
+          ips = [(i,_p) for i, _p in enumerate(p)]
+          ip  = max(ips, key=lambda x:x[1])
+          i, p = ip
+          print( cs )
+          print(ip, i_c[i])
+      c2d.save("models/%09d_%09f.h5"%(ind, buff['loss']))
+      print("saved ..")
+      print("logs...", buff )
 
 def predict():
   c_i           = pickle.loads( open("dataset/c_i.pkl", "rb").read() )
