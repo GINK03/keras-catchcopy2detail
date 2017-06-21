@@ -120,8 +120,8 @@ def train():
     yss  = []
     contexts = []
 
-    for CROP in range(0, len(keys), 1024*5):
-      for ek, key in enumerate( keys[CROP:CROP+1024*5] ):
+    for CROP in range(0, len(keys), 1024*3):
+      for ek, key in enumerate( keys[CROP:CROP+1024*3] ):
         print( ek )
         try:
           pd = pickle.loads( open(key, "rb").read() )
@@ -150,7 +150,7 @@ def train():
         print( e )
         
 
-      delta = random.randint(15,20)
+      delta = random.randint(25,30)
       ind   = 0
       for ind in range(I, I+delta):
         print_callback = LambdaCallback(on_epoch_end=callbacks)
