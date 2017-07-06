@@ -4,7 +4,9 @@ fterm_index = pickle.loads( open('dterm_index.pkl', 'rb').read() )
 index_fterm = { index:fterm for fterm, index in fterm_index.items() }
 def recover(x1s, x2s, prs):
   
-  for xs, pr in zip(x2s, prs):
+  for e, (xs, pr) in enumerate(zip(x2s, prs)):
+    if e > 10:
+      break
     text = ''
     for x in xs:
       index, weight = max([(i,x) for i,x in enumerate(x)], key=lambda x:x[1])

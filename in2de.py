@@ -44,18 +44,17 @@ now  = time.strftime("%H_%M_%S")
 def callback(epoch, logs):
   global buff
   buff = copy.copy(logs)
-  with open('loss_%s.log'%now, 'a+') as f:
+  with open('logs/loss_%s.log'%now, 'a+') as f:
     f.write('%s\n'%str(buff))
 batch_callback = LambdaCallback(on_epoch_end=lambda batch,logs: callback(batch,logs) )
 
 def train():
-  names = [name for name in sorted( glob.glob('dataset/*.pkl') )]
-  for i in range(100):
+  for name in sorted( glob.glob('dataset/*.pkl'):
     X1s, X2s, Ys = pickle.loads( open(names[i], 'rb').read() ) 
     while True:
       in2de.fit( [X1s, X2s], Ys, epochs=1, validation_split=0.2,callbacks=[batch_callback] )
       print(buff)
-      if buff['loss'] < 0.1:
+      if buff['loss'] < 2.5:
         break
     in2de.save('models/%09d.h5'%i)
     pr = in2de.predict( [X1s, X2s] )

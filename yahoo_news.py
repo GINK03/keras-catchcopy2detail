@@ -67,7 +67,7 @@ def step3():
          Y[ans_id] = 1.0
          #print(head_id, term_id, ans_id)
          data_buff.append( (X1, X2, Y) )
-         if len(data_buff) >= 100:
+         if len(data_buff) >= 1000:
            X1s = np.array( list( map(lambda x:x[0], data_buff) ) )
            X2s = np.array( list( map(lambda x:x[1], data_buff) ) )
            Ys  = np.array( list( map(lambda x:x[2], data_buff) ) )
