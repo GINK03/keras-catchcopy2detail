@@ -52,23 +52,22 @@ def step3():
        heads = list( map(lambda x:x if dterm_index.get(x) is not None else 'XXX', terms[:WINDOW]) )
        terms = list( map(lambda x:x if dterm_index.get(x) is not None else 'XXX', terms[WINDOW:]) )
        
-       X1 = np.zeros( (WINDOW, 16000+1) )
-       X2 = np.zeros( (WINDOW, 16000+1) )
-       Y  = np.zeros( (16000+1) )
        for i in range(0, len(terms)-WINDOW, 1):
-         if len( terms[i:i+WINDOW] ) != 0:
-           print(terms[i:i+WINDOW], terms[i+WINDOW] )
-           head_id = list( map(lambda x:dterm_index[x]  if dterm_index.get(x) is not None else xxx_index, heads ) )
-           term_id = list( map(lambda x:dterm_index[x] if dterm_index.get(x) is not None else xxx_index, terms[i:i+WINDOW]) )
-           ans_id  = dterm_index[terms[i+WINDOW]] if dterm_index.get(terms[i+WINDOW]) else xxx_index
-           for i, hi in enumerate(head_id):
-             X1[i, hi] = 1.0
-           for i, ti in enumerate(term_id):
-             X2[i, ti] = 1.0
-           Y[ans_id] = 1.0
-           #print(head_id, term_id, ans_id)
+         print(terms[i:i+WINDOW], terms[i+WINDOW] )
+         head_id = list( map(lambda x:dterm_index[x]  if dterm_index.get(x) is not None else xxx_index, heads ) )
+         term_id = list( map(lambda x:dterm_index[x] if dterm_index.get(x) is not None else xxx_index, terms[i:i+WINDOW]) )
+         ans_id  = dterm_index[terms[i+WINDOW]] if dterm_index.get(terms[i+WINDOW]) else xxx_index
+         X1 = np.zeros( (WINDOW, 16000+1) )
+         X2 = np.zeros( (WINDOW, 16000+1) )
+         Y  = np.zeros( (16000+1) )
+         for i, hi in enumerate(head_id):
+           X1[i, hi] = 1.0
+         for i, ti in enumerate(term_id):
+           X2[i, ti] = 1.0
+         Y[ans_id] = 1.0
+         #print(head_id, term_id, ans_id)
          data_buff.append( (X1, X2, Y) )
-         if len(data_buff) >= 50:
+         if len(data_buff) >= 100:
            X1s = np.array( list( map(lambda x:x[0], data_buff) ) )
            X2s = np.array( list( map(lambda x:x[1], data_buff) ) )
            Ys  = np.array( list( map(lambda x:x[2], data_buff) ) )
