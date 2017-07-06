@@ -5,7 +5,7 @@ from keras.callbacks       import LambdaCallback
 from keras.optimizers      import SGD, RMSprop, Adam
 from keras.layers.wrappers import Bidirectional as Bi
 from keras.layers.wrappers import TimeDistributed as TD
-from keras.layers          import merge, dot, multiply, concatenate, add
+from keras.layers          import merge, dot, multiply, concatenate, add, Activation
 from keras.regularizers    import l2
 from keras.layers.core     import Reshape
 from keras.layers.normalization import BatchNormalization as BN
@@ -23,17 +23,18 @@ import utils
 import time
 WIDTH       = 16000+1
 inputs_1    = Input( shape=(15, WIDTH) ) 
-encoded     = Bi( GRU(128, activation='relu') )(inputs_1)
-encoder     = Model(inputs_1, encoded)
-att_1       = RepeatVector(15)(encoded)
+encoded_1   = Bi( GRU(256, activation='selu', return_sequences=True) )(inputs_1)
+att_1       = TD( Dense(256, activation='selu') )( encoded_1 )
 
 inputs_2    = Input( shape=(15, WIDTH) )
-encoded_2   = Bi( GRU(256, activation='relu') )(inputs_2)
-att_2       = RepeatVector(15)(encoded_2)
+encoded_2   = Bi( GRU(256, activation='selu', return_sequences=True) )(inputs_2)
+att_2       = TD( Dense(256, activation='selu') )( encoded_2 )
 
 conc        = concatenate( [att_1, att_2] )
 
-conced      = Bi( GRU(512, activation='relu', return_sequences=False) )( conc )
+conced      = Bi( GRU(768, activation='selu', return_sequences=True) )( conc )
+conced      = TD( Dense(768, activation='selu') )( conced )
+conced      = Flatten()( conced )
 next_term   = Dense(16000+1, activation='softmax')( conced )
 
 in2de       = Model([inputs_1, inputs_2], next_term)
@@ -50,9 +51,19 @@ batch_callback = LambdaCallback(on_epoch_end=lambda batch,logs: callback(batch,l
 
 def train():
   count = 0
+  try:
+    to_load = sorted(glob.glob('models/*.h5') ).pop() 
+    in2de.load_weights( to_load )
+    count = int( re.search(r'(\d{1,})', to_load).group(1) )
+  except Exception as e:
+    print( e )
+    ...
   while True:
     for name in sorted( glob.glob('dataset/*.pkl') ):
+      print('will deal this data', name)
+      print('now count is', count)
       X1s, X2s, Ys = pickle.loads( open(name, 'rb').read() ) 
+      inner_loop = 0
       while True:
         in2de.fit( [X1s, X2s], Ys, epochs=1, validation_split=0.1,callbacks=[batch_callback] )
         print(buff)
@@ -60,9 +71,16 @@ def train():
           break
         if count < 20 and buff['loss'] < 1.00:
           break
-        if buff['loss'] < 0.80:
+        if count < 30 and buff['loss'] < 0.80:
           break
-      in2de.save('models/%09d.h5'%count)
+        if count < 40 and buff['loss'] < 0.50:
+          break
+        if buff['loss'] < 0.30:
+          break
+        if inner_loop > 50:
+          break
+        inner_loop += 1
+      in2de.save_weights('models/%09d.h5'%count)
       pr = in2de.predict( [X1s, X2s] )
       utils.recover(X1s.tolist(), X2s.tolist(), pr.tolist()) 
       count += 1
