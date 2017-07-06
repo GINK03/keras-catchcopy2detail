@@ -23,17 +23,17 @@ import utils
 import time
 WIDTH       = 16000+1
 inputs_1    = Input( shape=(15, WIDTH) ) 
-encoded_1   = Bi( GRU(256, activation='selu', return_sequences=True) )(inputs_1)
-att_1       = TD( Dense(256, activation='selu') )( encoded_1 )
+encoded_1   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation='selu', return_sequences=True) )(inputs_1)
+att_1       = TD( Dense(256, kernel_initializer='lecun_uniform', activation='selu') )( encoded_1 )
 
 inputs_2    = Input( shape=(15, WIDTH) )
-encoded_2   = Bi( GRU(256, activation='selu', return_sequences=True) )(inputs_2)
-att_2       = TD( Dense(256, activation='selu') )( encoded_2 )
+encoded_2   = Bi( GRU(256, kernel_initializer='lecun_uniform',activation='selu', return_sequences=True) )(inputs_2)
+att_2       = TD( Dense(256, kernel_initializer='lecun_uniform', activation='selu') )( encoded_2 )
 
 conc        = concatenate( [att_1, att_2] )
 
-conced      = Bi( GRU(768, activation='selu', return_sequences=True) )( conc )
-conced      = TD( Dense(768, activation='selu') )( conced )
+conced      = Bi( GRU(768, kernel_initializer='lecun_uniform', activation='selu', return_sequences=True) )( conc )
+conced      = TD( Dense(768, kernel_initializer='lecun_uniform', activation='selu') )( conced )
 conced      = Flatten()( conced )
 next_term   = Dense(16000+1, activation='softmax')( conced )
 
@@ -82,7 +82,8 @@ def train():
         inner_loop += 1
       in2de.save_weights('models/%09d.h5'%count)
       pr = in2de.predict( [X1s, X2s] )
-      utils.recover(X1s.tolist(), X2s.tolist(), pr.tolist()) 
+      if count%5 == 0:
+        utils.recover(X1s.tolist(), X2s.tolist(), pr.tolist()) 
       count += 1
 
 def predict():
