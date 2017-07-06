@@ -53,10 +53,15 @@ def step3():
        terms = list( map(lambda x:x if dterm_index.get(x) is not None else 'XXX', terms[WINDOW:]) )
        
        for i in range(0, len(terms)-WINDOW, 1):
-         print(terms[i:i+WINDOW], terms[i+WINDOW] )
          head_id = list( map(lambda x:dterm_index[x]  if dterm_index.get(x) is not None else xxx_index, heads ) )
          term_id = list( map(lambda x:dterm_index[x] if dterm_index.get(x) is not None else xxx_index, terms[i:i+WINDOW]) )
+         
          ans_id  = dterm_index[terms[i+WINDOW]] if dterm_index.get(terms[i+WINDOW]) else xxx_index
+         
+         # adhoc, いらないデータを飛ばす 
+         if ans_id ==  xxx_index or xxx_index in term_id or xxx_index in head_id: continue
+         print(terms[i:i+WINDOW], terms[i+WINDOW] )
+
          X1 = np.zeros( (WINDOW, 16000+1) )
          X2 = np.zeros( (WINDOW, 16000+1) )
          Y  = np.zeros( (16000+1) )

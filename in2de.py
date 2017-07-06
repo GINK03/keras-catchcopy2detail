@@ -57,9 +57,8 @@ def train():
     count = int( re.search(r'(\d{1,})', to_load).group(1) )
   except Exception as e:
     print( e )
-    ...
   while True:
-    for name in sorted( glob.glob('dataset/*.pkl') ):
+    for name in sorted( glob.glob(os.getenv("HOME") + '/sda/dataset/*.pkl') ):
       print('will deal this data', name)
       print('now count is', count)
       X1s, X2s, Ys = pickle.loads( open(name, 'rb').read() ) 
@@ -87,7 +86,16 @@ def train():
       count += 1
 
 def predict():
-  ...
+  to_load = sorted(glob.glob('models/*.h5') ).pop() 
+  in2de.load_weights( to_load )
+  
+  for name in sorted( glob.glob('/home/gimpei/sda/dataset/*.pkl') ):
+    print('will deal this data', name)
+    print('now count is', count)
+    X1s, X2s, Ys = pickle.loads( open(name, 'rb').read() ) 
+    pr = in2de.predict( [X1s, X2s] )
+    utils.recover(X1s.tolist(), X2s.tolist(), pr.tolist()) 
+
 if __name__ == '__main__':
   if '--make_dataset' in sys.argv:
     make_dataset()
