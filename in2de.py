@@ -80,10 +80,10 @@ def train():
         if inner_loop > 50:
           break
         inner_loop += 1
-      in2de.save_weights('models/%09d.h5'%count)
       pr = in2de.predict( [X1s, X2s] )
+      utils.recover(X1s.tolist(), X2s.tolist(), pr.tolist()) 
       if count%5 == 0:
-        utils.recover(X1s.tolist(), X2s.tolist(), pr.tolist()) 
+        in2de.save_weights('models/%09d.h5'%count)
       count += 1
 
 def predict():
