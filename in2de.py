@@ -49,16 +49,23 @@ def callback(epoch, logs):
 batch_callback = LambdaCallback(on_epoch_end=lambda batch,logs: callback(batch,logs) )
 
 def train():
-  for name in sorted( glob.glob('dataset/*.pkl'):
-    X1s, X2s, Ys = pickle.loads( open(names[i], 'rb').read() ) 
-    while True:
-      in2de.fit( [X1s, X2s], Ys, epochs=1, validation_split=0.2,callbacks=[batch_callback] )
-      print(buff)
-      if buff['loss'] < 2.5:
-        break
-    in2de.save('models/%09d.h5'%i)
-    pr = in2de.predict( [X1s, X2s] )
-    utils.recover(X1s.tolist(), X2s.tolist(), pr.tolist()) 
+  count = 0
+  while True:
+    for name in sorted( glob.glob('dataset/*.pkl') ):
+      X1s, X2s, Ys = pickle.loads( open(name, 'rb').read() ) 
+      while True:
+        in2de.fit( [X1s, X2s], Ys, epochs=1, validation_split=0.1,callbacks=[batch_callback] )
+        print(buff)
+        if count < 10 and buff['loss'] < 1.25:
+          break
+        if count < 20 and buff['loss'] < 1.00:
+          break
+        if buff['loss'] < 0.80:
+          break
+      in2de.save('models/%09d.h5'%count)
+      pr = in2de.predict( [X1s, X2s] )
+      utils.recover(X1s.tolist(), X2s.tolist(), pr.tolist()) 
+      count += 1
 
 def predict():
   ...
