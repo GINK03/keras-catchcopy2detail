@@ -53,7 +53,7 @@ batch_callback = LambdaCallback(on_epoch_end=lambda batch,logs: callback(batch,l
 DATASET_POOL = []
 def loader():
   while True:
-    for name in sorted( glob.glob(os.getenv("HOME") + '/sda/dataset/*.pkl') ) :
+    for name in glob.glob('dataset/*.pkl') :
       while True:
         if len( DATASET_POOL ) >= 5: 
           time.sleep(1.0)
@@ -62,9 +62,11 @@ def loader():
         
       print('loading data...', name)
       X1s, X2s, Ys = pickle.loads( open(name, 'rb').read() ) 
-      X1s          = np.array( X1s )
-      X2s          = np.array( X2s )
-      Ys           = np.array( Ys )
+      X1s          = np.array( [ x.todense() for x in X1s ] )
+      print( X1s.shape )
+      X2s          = np.array( [ x.todense() for x in X2s ] )
+      Ys           = np.reshape( np.array( [ y.todense() for y in Ys  ] ), (2000, 16001) )
+      print('Ys', Ys.shape )
       DATASET_POOL.append( (X1s, X2s, Ys, name) )
       print('finish recover from sparse...', name)
 
@@ -102,7 +104,7 @@ def train():
             break
           if buff['loss'] < 0.30:
             break
-          if inner_loop > 50:
+          if inner_loop > 10:
             break
           inner_loop += 1
         if count%5 == 0:
