@@ -9,6 +9,7 @@ from keras.layers          import merge, dot, multiply, concatenate, add, Activa
 from keras.regularizers    import l2
 from keras.layers.core     import Reshape
 from keras.layers.normalization import BatchNormalization as BN
+from keras.layers.core     import Dropout 
 import keras.backend as K
 import numpy as np
 import random
@@ -21,20 +22,24 @@ import os
 import re
 import utils
 import time
+import concurrent.futures
+import threading 
 WIDTH       = 16000+1
+ACTIVATOR   = 'selu'
+DO          = Dropout(0.1)
 inputs_1    = Input( shape=(15, WIDTH) ) 
-encoded_1   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation='selu', return_sequences=True) )(inputs_1)
-att_1       = TD( Dense(256, kernel_initializer='lecun_uniform', activation='selu') )( encoded_1 )
+encoded_1   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )(inputs_1)
+att_1       = TD( Dense(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded_1 )
 
 inputs_2    = Input( shape=(15, WIDTH) )
-encoded_2   = Bi( GRU(256, kernel_initializer='lecun_uniform',activation='selu', return_sequences=True) )(inputs_2)
-att_2       = TD( Dense(256, kernel_initializer='lecun_uniform', activation='selu') )( encoded_2 )
+encoded_2   = Bi( GRU(256, kernel_initializer='lecun_uniform',activation=ACTIVATOR, return_sequences=True) )(inputs_2)
+att_2       = TD( Dense(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded_2 )
 
-conc        = concatenate( [att_1, att_2] )
+conc        = DO( concatenate( [att_1, att_2] ) )
 
-conced      = Bi( GRU(768, kernel_initializer='lecun_uniform', activation='selu', return_sequences=True) )( conc )
-conced      = TD( Dense(768, kernel_initializer='lecun_uniform', activation='selu') )( conced )
-conced      = Flatten()( conced )
+conced      = Bi( GRU(768, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( conc )
+conced      = TD( Dense(768, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( conced )
+conced      = DO( Flatten()( conced ) )
 next_term   = Dense(16000+1, activation='softmax')( conced )
 
 in2de       = Model([inputs_1, inputs_2], next_term)
@@ -55,7 +60,7 @@ def loader():
   while True:
     for name in glob.glob('dataset/*.pkl') :
       while True:
-        if len( DATASET_POOL ) >= 5: 
+        if len( DATASET_POOL ) >= 1: 
           time.sleep(1.0)
         else:
           break
@@ -63,21 +68,17 @@ def loader():
       print('loading data...', name)
       X1s, X2s, Ys = pickle.loads( open(name, 'rb').read() ) 
       X1s          = np.array( [ x.todense() for x in X1s ] )
-      print( X1s.shape )
       X2s          = np.array( [ x.todense() for x in X2s ] )
       Ys           = np.reshape( np.array( [ y.todense() for y in Ys  ] ), (2000, 16001) )
-      print('Ys', Ys.shape )
       DATASET_POOL.append( (X1s, X2s, Ys, name) )
       print('finish recover from sparse...', name)
 
-import concurrent.futures
-import threading 
 def train():
   t = threading.Thread(target=loader, args=())
   t.start()
   count = 0
   try:
-    to_load = sorted(glob.glob('models/*.h5') ).pop() 
+    to_load = sorted( glob.glob('models/*.h5') ).pop() 
     in2de.load_weights( to_load )
     count = int( re.search(r'(\d{1,})', to_load).group(1) )
   except Exception as e:
@@ -87,31 +88,31 @@ def train():
       print('no buffers so delay some seconds')
       time.sleep(10.)
     else:
-        X1s, X2s, Ys, name = DATASET_POOL.pop(0)
-        print('will deal this data', name)
-        print('now count is', count)
-        inner_loop = 0
-        while True:
-          in2de.fit( [X1s, X2s], Ys, epochs=1, validation_split=0.1,callbacks=[batch_callback] )
-          print(buff)
-          if count < 10 and buff['loss'] < 1.25:
-            break
-          if count < 20 and buff['loss'] < 1.00:
-            break
-          if count < 30 and buff['loss'] < 0.80:
-            break
-          if count < 40 and buff['loss'] < 0.50:
-            break
-          if buff['loss'] < 0.30:
-            break
-          if inner_loop > 10:
-            break
-          inner_loop += 1
-        if count%5 == 0:
-          pr = in2de.predict( [X1s, X2s] )
-          utils.recover(X1s.tolist()[:100], X2s.tolist()[:100], pr.tolist()[:100]) 
-          in2de.save_weights('models/%09d.h5'%count)
-        count += 1
+      X1s, X2s, Ys, name = DATASET_POOL.pop(0)
+      print('will deal this data', name)
+      print('now count is', count)
+      inner_loop = 0
+      while True:
+        in2de.fit( [X1s, X2s], Ys, epochs=1, validation_split=0.02,callbacks=[batch_callback] )
+        print(buff)
+        if count < 10 and buff['loss'] < 3.25:
+          break
+        if count < 20 and buff['loss'] < 3.00:
+          break
+        if count < 30 and buff['loss'] < 2.80:
+          break
+        if count < 40 and buff['loss'] < 2.40:
+          break
+        if buff['loss'] < 2.00:
+          break
+        if inner_loop > 30:
+          break
+        inner_loop += 1
+      if count%5 == 0:
+        pr = in2de.predict( [X1s, X2s] )
+        utils.recover(X1s.tolist()[:100], X2s.tolist()[:100], pr.tolist()[:100]) 
+        in2de.save_weights('models/%09d.h5'%count)
+      count += 1
 
 def predict():
   to_load = sorted(glob.glob('models/*.h5') ).pop() 

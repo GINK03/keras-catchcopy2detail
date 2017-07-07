@@ -34,8 +34,6 @@ def distinct_term():
     dterm_index[term] =  e
   open('dterm_index.pkl', 'wb').write( pickle.dumps(dterm_index) )
   
-
-
 # step3 : データ・セット作成する
 def step3():
   from scipy.sparse import lil_matrix, csr_matrix
@@ -46,8 +44,6 @@ def step3():
   WINDOW = 15
   SIZE   = 2000
   FEATS  = 16000+1
-  #import tensorflow as tf
-  #tf.SparseTensor
   for eg, name in enumerate( glob.glob('../pkls/*') ):
     print( eg, name )
 
@@ -76,11 +72,9 @@ def step3():
          Y[ans_id] = 1.0
          #print(head_id, term_id, ans_id)
          data_buff.append( (X1, X2, Y) )
-         if len(data_buff) >= 2000:
+         if len(data_buff) >= SIZE:
            X1s = list( map(lambda x:lil_matrix(x[0]), data_buff) )
-           #X1s = lil_matrix( X1s )
            X2s = list( map(lambda x:lil_matrix(x[1]), data_buff) )
-#           X2s = lil_matrix( X2s )
            Ys  = list( map(lambda x:lil_matrix(x[2]), data_buff) )
 
            open('dataset/%09d.pkl'%counter, 'wb').write( pickle.dumps( (X1s, X2s, Ys) ) )
