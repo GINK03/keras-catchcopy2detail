@@ -35,11 +35,11 @@ inputs_2    = Input( shape=(15, WIDTH) )
 encoded_2   = Bi( GRU(256, kernel_initializer='lecun_uniform',activation=ACTIVATOR, return_sequences=True) )(inputs_2)
 att_2       = TD( Dense(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded_2 )
 
-conc        = DO( concatenate( [att_1, att_2] ) )
+conc        = concatenate( [att_1, att_2] )
 
-conced      = Bi( GRU(768, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( conc )
-conced      = TD( Dense(768, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( conced )
-conced      = DO( Flatten()( conced ) )
+conced      = Bi( GRU(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( conc )
+conced      = TD( Dense(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( conced )
+conced      = Flatten()( conced )
 next_term   = Dense(16000+1, activation='softmax')( conced )
 
 in2de       = Model([inputs_1, inputs_2], next_term)
@@ -69,6 +69,7 @@ def loader():
       X1s, X2s, Ys = pickle.loads( open(name, 'rb').read() ) 
       X1s          = np.array( [ x.todense() for x in X1s ] )
       X2s          = np.array( [ x.todense() for x in X2s ] )
+      print( X2s.shape )
       Ys           = np.reshape( np.array( [ y.todense() for y in Ys  ] ), (2000, 16001) )
       DATASET_POOL.append( (X1s, X2s, Ys, name) )
       print('finish recover from sparse...', name)
