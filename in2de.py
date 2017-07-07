@@ -49,16 +49,30 @@ def callback(epoch, logs):
     f.write('%s\n'%str(buff))
 batch_callback = LambdaCallback(on_epoch_end=lambda batch,logs: callback(batch,logs) )
 
-def loader(name):
-  print('loading data...', name)
-  X1s, X2s, Ys = pickle.loads( open(name, 'rb').read() ) 
-  X1s          = np.array( [ x for x in X1s ]  )
-  X2s          = np.array( [ x for x in X2s ]  )
-  Ys           = np.array( [ x for x in Ys ]  )
-  print('finish recover from sparse...', name)
-  return X1s, X2s, Ys, name
+
+DATASET_POOL = []
+def loader():
+  while True:
+    for name in sorted( glob.glob(os.getenv("HOME") + '/sda/dataset/*.pkl') ) :
+      while True:
+        if len( DATASET_POOL ) >= 5: 
+          time.sleep(1.0)
+        else:
+          break
+        
+      print('loading data...', name)
+      X1s, X2s, Ys = pickle.loads( open(name, 'rb').read() ) 
+      X1s          = np.array( X1s )
+      X2s          = np.array( X2s )
+      Ys           = np.array( Ys )
+      DATASET_POOL.append( (X1s, X2s, Ys, name) )
+      print('finish recover from sparse...', name)
+
 import concurrent.futures
+import threading 
 def train():
+  t = threading.Thread(target=loader, args=())
+  t.start()
   count = 0
   try:
     to_load = sorted(glob.glob('models/*.h5') ).pop() 
@@ -67,9 +81,11 @@ def train():
   except Exception as e:
     print( e )
   while True:
-    names = [ name for name in sorted( glob.glob(os.getenv("HOME") + '/sda/dataset/*.pkl') ) ]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-      for X1s, X2s, Ys, name in executor.map(loader, names):
+    if DATASET_POOL == []:
+      print('no buffers so delay some seconds')
+      time.sleep(10.)
+    else:
+        X1s, X2s, Ys, name = DATASET_POOL.pop(0)
         print('will deal this data', name)
         print('now count is', count)
         inner_loop = 0
