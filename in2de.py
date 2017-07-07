@@ -49,6 +49,15 @@ def callback(epoch, logs):
     f.write('%s\n'%str(buff))
 batch_callback = LambdaCallback(on_epoch_end=lambda batch,logs: callback(batch,logs) )
 
+def loader(name):
+  print('loading data...', name)
+  X1s, X2s, Ys = pickle.loads( open(name, 'rb').read() ) 
+  X1s          = np.array( [ x for x in X1s ]  )
+  X2s          = np.array( [ x for x in X2s ]  )
+  Ys           = np.array( [ x for x in Ys ]  )
+  print('finish recover from sparse...', name)
+  return X1s, X2s, Ys, name
+import concurrent.futures
 def train():
   count = 0
   try:
@@ -58,32 +67,33 @@ def train():
   except Exception as e:
     print( e )
   while True:
-    for name in sorted( glob.glob(os.getenv("HOME") + '/sda/dataset/*.pkl') ):
-      print('will deal this data', name)
-      print('now count is', count)
-      X1s, X2s, Ys = pickle.loads( open(name, 'rb').read() ) 
-      inner_loop = 0
-      while True:
-        in2de.fit( [X1s, X2s], Ys, epochs=1, validation_split=0.1,callbacks=[batch_callback] )
-        print(buff)
-        if count < 10 and buff['loss'] < 1.25:
-          break
-        if count < 20 and buff['loss'] < 1.00:
-          break
-        if count < 30 and buff['loss'] < 0.80:
-          break
-        if count < 40 and buff['loss'] < 0.50:
-          break
-        if buff['loss'] < 0.30:
-          break
-        if inner_loop > 50:
-          break
-        inner_loop += 1
-      pr = in2de.predict( [X1s, X2s] )
-      utils.recover(X1s.tolist(), X2s.tolist(), pr.tolist()) 
-      if count%5 == 0:
-        in2de.save_weights('models/%09d.h5'%count)
-      count += 1
+    names = [ name for name in sorted( glob.glob(os.getenv("HOME") + '/sda/dataset/*.pkl') ) ]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+      for X1s, X2s, Ys, name in executor.map(loader, names):
+        print('will deal this data', name)
+        print('now count is', count)
+        inner_loop = 0
+        while True:
+          in2de.fit( [X1s, X2s], Ys, epochs=1, validation_split=0.1,callbacks=[batch_callback] )
+          print(buff)
+          if count < 10 and buff['loss'] < 1.25:
+            break
+          if count < 20 and buff['loss'] < 1.00:
+            break
+          if count < 30 and buff['loss'] < 0.80:
+            break
+          if count < 40 and buff['loss'] < 0.50:
+            break
+          if buff['loss'] < 0.30:
+            break
+          if inner_loop > 50:
+            break
+          inner_loop += 1
+        if count%5 == 0:
+          pr = in2de.predict( [X1s, X2s] )
+          utils.recover(X1s.tolist()[:100], X2s.tolist()[:100], pr.tolist()[:100]) 
+          in2de.save_weights('models/%09d.h5'%count)
+        count += 1
 
 def predict():
   to_load = sorted(glob.glob('models/*.h5') ).pop() 

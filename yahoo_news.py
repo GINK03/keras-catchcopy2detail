@@ -38,15 +38,19 @@ def distinct_term():
 
 # step3 : データ・セット作成する
 def step3():
+  from scipy.sparse import lil_matrix, csr_matrix
   dterm_index = pickle.loads( open('dterm_index.pkl', 'rb').read() )
   xxx_index   = len(dterm_index)
   m = MeCab.Tagger('-Owakati')
   data_buff = []; counter = 0
   WINDOW = 15
+  SIZE   = 2000
+  FEATS  = 16000+1
+  #import tensorflow as tf
+  #tf.SparseTensor
   for eg, name in enumerate( glob.glob('../pkls/*') ):
     print( eg, name )
 
-    
     for ep, context in enumerate( pickle.loads( open(name, 'rb').read() )):
        terms = m.parse(context).strip().split()
        heads = list( map(lambda x:x if dterm_index.get(x) is not None else 'XXX', terms[:WINDOW]) )
@@ -73,9 +77,11 @@ def step3():
          #print(head_id, term_id, ans_id)
          data_buff.append( (X1, X2, Y) )
          if len(data_buff) >= 2000:
-           X1s = np.array( list( map(lambda x:x[0], data_buff) ) )
-           X2s = np.array( list( map(lambda x:x[1], data_buff) ) )
-           Ys  = np.array( list( map(lambda x:x[2], data_buff) ) )
+           X1s = list( map(lambda x:lil_matrix(x[0]), data_buff) )
+           #X1s = lil_matrix( X1s )
+           X2s = list( map(lambda x:lil_matrix(x[1]), data_buff) )
+#           X2s = lil_matrix( X2s )
+           Ys  = list( map(lambda x:lil_matrix(x[2]), data_buff) )
 
            open('dataset/%09d.pkl'%counter, 'wb').write( pickle.dumps( (X1s, X2s, Ys) ) )
            # reset
