@@ -35,11 +35,11 @@ inputs_2    = Input( shape=(15, WIDTH) )
 encoded_2   = Bi( GRU(256, kernel_initializer='lecun_uniform',activation=ACTIVATOR, return_sequences=True) )(inputs_2)
 att_2       = TD( Dense(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded_2 )
 
-conc        = concatenate( [att_1, att_2] )
+conc        = DO( concatenate( [att_1, att_2] ) )
 
 conced      = Bi( GRU(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( conc )
 conced      = TD( Dense(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( conced )
-conced      = Flatten()( conced )
+conced      = DO( Flatten()( conced ) )
 next_term   = Dense(16000+1, activation='softmax')( conced )
 
 in2de       = Model([inputs_1, inputs_2], next_term)
