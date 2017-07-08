@@ -58,7 +58,7 @@ batch_callback = LambdaCallback(on_epoch_end=lambda batch,logs: callback(batch,l
 DATASET_POOL = []
 def loader():
   while True:
-    for name in glob.glob('dataset/*.pkl') :
+    for name in sorted( glob.glob('dataset/*.pkl') )[:100]:
       while True:
         if len( DATASET_POOL ) >= 1: 
           time.sleep(1.0)
