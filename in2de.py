@@ -31,11 +31,11 @@ inputs_1    = Input( shape=(15, WIDTH) )
 encoded_1   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )(inputs_1)
 att_1       = TD( Dense(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded_1 )
 
-inputs_2    = Input( shape=(15, WIDTH) )
+inputs_2    = Input( shape=(5, WIDTH) )
 encoded_2   = Bi( GRU(256, kernel_initializer='lecun_uniform',activation=ACTIVATOR, return_sequences=True) )(inputs_2)
 att_2       = TD( Dense(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded_2 )
 
-conc        = DO( concatenate( [att_1, att_2] ) )
+conc        = DO( concatenate( [att_1, att_2], axis=1 ) )
 
 conced      = Bi( GRU(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( conc )
 conced      = TD( Dense(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( conced )

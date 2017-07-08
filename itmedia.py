@@ -7,10 +7,10 @@ import numpy as np
 def frequency():
   m = MeCab.Tagger('-Owakati')
   term_freq = {}
-  for name in glob.glob("../pkls/*.pkl"):
+  for name in glob.glob("./itmedia-scraper/data.pkl"):
     print( name )
-    for context in pickle.loads( open(name, 'rb').read() ):
-      for term in m.parse( context ).strip().split() :
+    for title, context in pickle.loads( open(name, 'rb').read() ):
+      for term in m.parse( title + ' ' + context ).strip().split() :
         if term_freq.get( term ) is None : 
           term_freq[term] = 0
         term_freq[term] += 1
@@ -41,29 +41,31 @@ def step3():
   xxx_index   = len(dterm_index)
   m = MeCab.Tagger('-Owakati')
   data_buff = []; counter = 0
-  WINDOW = 15
+  WINDOW_1 = 15
+  WINDOW_2 = 5
   SIZE   = 2000
   FEATS  = 16000+1
-  for eg, name in enumerate( glob.glob('../pkls/*') ):
+  for eg, name in enumerate( glob.glob('./itmedia-scraper/data.pkl') ):
     print( eg, name )
 
-    for ep, context in enumerate( pickle.loads( open(name, 'rb').read() )):
-       terms = m.parse(context).strip().split()
-       heads = list( map(lambda x:x if dterm_index.get(x) is not None else 'XXX', terms[:WINDOW]) )
-       terms = list( map(lambda x:x if dterm_index.get(x) is not None else 'XXX', terms[WINDOW:]) )
+    for ep, (title, context) in enumerate( pickle.loads( open(name, 'rb').read() )):
+       terms  = m.parse(context).strip().split()
+       titles = m.parse(title).strip().split()
+       heads  = list( map(lambda x:x if dterm_index.get(x) is not None else 'XXX', titles[:WINDOW_1]) )
+       terms  = list( map(lambda x:x if dterm_index.get(x) is not None else 'XXX', terms[WINDOW_2:]) )
        
-       for i in range(0, len(terms)-WINDOW, 1):
+       for i in range(0, len(terms)-WINDOW_2, 1):
          head_id = list( map(lambda x:dterm_index[x]  if dterm_index.get(x) is not None else xxx_index, heads ) )
-         term_id = list( map(lambda x:dterm_index[x] if dterm_index.get(x) is not None else xxx_index, terms[i:i+WINDOW]) )
+         term_id = list( map(lambda x:dterm_index[x] if dterm_index.get(x) is not None else xxx_index, terms[i:i+WINDOW_2]) )
          
-         ans_id  = dterm_index[terms[i+WINDOW]] if dterm_index.get(terms[i+WINDOW]) else xxx_index
+         ans_id  = dterm_index[terms[i+WINDOW_2]] if dterm_index.get(terms[i+WINDOW_2]) else xxx_index
          
          # adhoc, いらないデータを飛ばす 
-         if ans_id ==  xxx_index or xxx_index in term_id or xxx_index in head_id: continue
-         print(terms[i:i+WINDOW], terms[i+WINDOW] )
+         #-if ans_id ==  xxx_index or xxx_index in term_id or xxx_index in head_id: continue
+         print(terms[i:i+WINDOW_2], terms[i+WINDOW_2] )
 
-         X1 = np.zeros( (WINDOW, 16000+1) )
-         X2 = np.zeros( (WINDOW, 16000+1) )
+         X1 = np.zeros( (WINDOW_1, 16000+1) )
+         X2 = np.zeros( (WINDOW_2, 16000+1) )
          Y  = np.zeros( (16000+1) )
          for i, hi in enumerate(head_id):
            X1[i, hi] = 1.0
