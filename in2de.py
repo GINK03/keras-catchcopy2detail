@@ -119,12 +119,29 @@ def predict():
   to_load = sorted(glob.glob('models/*.h5') ).pop() 
   in2de.load_weights( to_load )
   
-  for name in sorted( glob.glob('/home/gimpei/sda/dataset/*.pkl') ):
+  for name in sorted( glob.glob('dataset/*.pkl') ):
     print('will deal this data', name)
-    print('now count is', count)
     X1s, X2s, Ys = pickle.loads( open(name, 'rb').read() ) 
-    pr = in2de.predict( [X1s, X2s] )
-    utils.recover(X1s.tolist(), X2s.tolist(), pr.tolist()) 
+    X1s          = np.array( [ x.todense() for x in X1s ] )
+    X2s          = np.array( [ x.todense() for x in X2s ] )
+    Ys           = np.reshape( np.array( [ y.todense() for y in Ys  ] ), (2000, 16001) )
+    X1s, X2s, Ys = map(lambda x:x.tolist(), [X1s, X2s, Ys])
+    for x1, x2, y in zip(X1s, X2s, Ys):
+      """" start to loop """
+      x1, x2, y = map(lambda x:np.array([x]) , [x1, x2, y] )
+      print('\ntitle', utils.recover_hint_one(x1.tolist()[0]) )
+      for i in range(10):
+        pr = in2de.predict( [x1, x2] )
+        utils.recover(x1.tolist(), x2.tolist(), pr.tolist(), end='') 
+        x2          = x2.tolist()[0]
+        x2.pop(0)
+        pr          = max([(i,w) for i,w in enumerate(pr.tolist()[0])], key=lambda x:x[1])
+        base        = [0.0 for i in range(16001)]
+        base[pr[0]] = 1.0
+        pr          = base
+        x2.append( pr )
+        x2          = np.array([x2])
+    print("split")
 
 if __name__ == '__main__':
   if '--make_dataset' in sys.argv:

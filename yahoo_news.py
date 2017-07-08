@@ -52,7 +52,7 @@ def step3():
        heads = list( map(lambda x:x if dterm_index.get(x) is not None else 'XXX', terms[:WINDOW]) )
        terms = list( map(lambda x:x if dterm_index.get(x) is not None else 'XXX', terms[WINDOW:]) )
        
-       for i in range(0, len(terms)-WINDOW, 1):
+       for i in range(0, len(terms)-WINDOW, 2):
          head_id = list( map(lambda x:dterm_index[x]  if dterm_index.get(x) is not None else xxx_index, heads ) )
          term_id = list( map(lambda x:dterm_index[x] if dterm_index.get(x) is not None else xxx_index, terms[i:i+WINDOW]) )
          
